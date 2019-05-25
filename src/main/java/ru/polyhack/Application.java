@@ -1,12 +1,11 @@
 package ru.polyhack;
 
 import org.springframework.beans.factory.BeanCreationException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.web.client.RestTemplate;
 import org.telegram.telegrambots.ApiContextInitializer;
-import org.telegram.telegrambots.meta.TelegramBotsApi;
 
 @SpringBootApplication
 public class Application implements CommandLineRunner {
@@ -15,10 +14,17 @@ static {
     ApiContextInitializer.init();
 }
 
-@Autowired
-private PollBot pollBot;
-
 public static void main(String[] args) {
+//    System.setProperty("http.proxyHost", "157.230.182.46");
+//    System.setProperty("http.proxyPort", "8080");
+//
+//    System.setProperty("https.proxyHost", "54.39.209.44");
+//    System.setProperty("https.proxyPort", "3128");
+
+//    System.out.println("my IP (http): " + new RestTemplate().getForEntity("http://ipinfo.io/ip", String.class));
+//    System.out.println("my IP (https): " + new RestTemplate().getForEntity("https://ipinfo.io/ip", String.class));
+    System.out.println(("ping telegram: " + new RestTemplate().getForEntity("https://api.telegram.org", String.class)).substring(0, 100));
+
     try {
         SpringApplication.run(Application.class, args);
     } catch (BeanCreationException e) {
@@ -30,9 +36,8 @@ public static void main(String[] args) {
 }
 
 @Override
-public void run(String... args) throws Exception {
-    TelegramBotsApi botsApi = new TelegramBotsApi();
-    botsApi.registerBot(pollBot);
+public void run(String... args) {
+
 }
 
 }

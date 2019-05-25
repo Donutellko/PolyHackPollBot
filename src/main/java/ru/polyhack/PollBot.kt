@@ -4,18 +4,16 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.telegram.telegrambots.bots.TelegramLongPollingBot
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
+import org.telegram.telegrambots.meta.api.objects.Message
 import org.telegram.telegrambots.meta.api.objects.Update
 
 
 @Component
-class PollBot : TelegramLongPollingBot() {
-
-
-    @Value("\${username}")
-    val username: String? = null
-
-    @Value("\${token}")
-    val token: String? = null
+class PollBot(
+        @Value("\${username}") val username: String,
+        @Value("\${token}") val token: String,
+        val userService: UserService
+) : TelegramLongPollingBot() {
 
 
     override fun getBotUsername() = username
@@ -23,14 +21,28 @@ class PollBot : TelegramLongPollingBot() {
     override fun getBotToken() = token
 
     override fun onUpdateReceived(update: Update) {
-        update.updateId
-        if (!update.hasMessage()) return
+        if (!update.hasMessage()) {
+            return
+        }
 
-        val message = SendMessage()
+        val user = userService.getOrCreateUser(update.message.from)
+        var message = update.message
+        var text = message.text
+
+        val response = SendMessage()
                 .setChatId(update.message.chatId)
-                .setText(update.message.text)
+                .setText(
+                        if (text == "/start" || text == "/help") {
+                            """
+                                 Привет!
+                                 С помощью этого бота ты можешь проголосовать за проекты хакатона.
+                            """.trimIndent()
+                        } else {
+                            text
+                        }
+                )
 
-        execute(message)
+        execute(response)
     }
 
 }
