@@ -8,12 +8,14 @@ import org.telegram.telegrambots.meta.ApiContext
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.send.SendSticker
 import org.telegram.telegrambots.meta.api.objects.Update
+import org.telegram.telegrambots.meta.api.objects.stickers.Sticker
 import java.lang.NumberFormatException
 
 @Component
 class PollBot(
         @Value("\${username}") val username: String,
         @Value("\${token}") val token: String,
+        @Value("\${votes-limit}") val votesLimit: Long,
         private val userService: UserService,
         private val logService: LogService,
         private val projectServ: ProjectService
@@ -25,17 +27,20 @@ class PollBot(
         }
 ) {
 
-    private val stickers = mapOf(
-            "cool" to "CAADAgADCQADkBSzIXZlSs_QyYc9Ag",
-            "angry" to "CAADAgADBwADkBSzIamaMEDT6-0rAg",
-            "what" to "CAADAgADCgADkBSzIZKTLtxihVueAg",
-            "love" to "CAADAgADBgADkBSzIQHQ53WkOU0dAg",
-            "cake" to "CAADAgADCAADkBSzIXCJL2ZC7QW6Ag"
+    enum class Stickers { COOL, ANGRY, WHAT, LOVE, CAKE }
 
+    private val stickers = mapOf(
+            Stickers.COOL to "CAADAgADCQADkBSzIXZlSs_QyYc9Ag",
+            Stickers.ANGRY to "CAADAgADBwADkBSzIamaMEDT6-0rAg",
+            Stickers.WHAT to "CAADAgADCgADkBSzIZKTLtxihVueAg",
+            Stickers.LOVE to "CAADAgADBgADkBSzIQHQ53WkOU0dAg",
+            Stickers.CAKE to "CAADAgADCAADkBSzIXCJL2ZC7QW6Ag"
     )
 
     private val helpText = """
         Привет! С помощью этого бота ты можешь проголосовать за проекты хакатона.
+        Всего ты можешь проголосовать за $votesLimit проектов.
+
         Вот, что ты можешь сделать:
         /help - увидеть это сообщение
         /list - получить список проектов с их идентификаторами (id)
@@ -57,7 +62,7 @@ class PollBot(
         val user = userService.getOrCreateUser(update.message.from)
         val requestText = update.message.text ?: ""
 
-        var responseSticker = ""
+        var responseSticker: Stickers? = null
 
         val responseText: String = if (requestText.contains("/start") || requestText.contains("/help")) {
 
@@ -82,7 +87,7 @@ class PollBot(
             if (votes.isBlank())
                 "Вы ни за кого не голосовали."
             else {
-                responseSticker = "love"
+                responseSticker = Stickers.LOVE
                 "Вы проголосовали за:\n$votes"
             }
 
@@ -101,7 +106,7 @@ class PollBot(
 
             }catch (e: Exception) {
 
-                responseSticker = "angry"
+                responseSticker = Stickers.ANGRY
                 e.printStackTrace()
 
                 e.message ?: "Произошла ошибка."
@@ -114,7 +119,7 @@ class PollBot(
             if (stats.isBlank())
                 "Нет ни одного голоса"
             else {
-                responseSticker = "cake"
+                responseSticker = Stickers.CAKE
                 "Количество голосов за команды: \n$stats"
             }
 
@@ -130,7 +135,7 @@ class PollBot(
 
         } else {
 
-            responseSticker = "what"
+            responseSticker = Stickers.WHAT
             "Извини, я не понял. Введи /help, чтобы увидеть доступные команды."
 
         }
@@ -146,7 +151,7 @@ class PollBot(
             )
         }
 
-        if (responseSticker.isNotBlank()) {
+        if (responseSticker != null) {
             execute(SendSticker().apply {
                 setChatId(user.id!!.toLong())
                 setSticker(stickers[responseSticker])
