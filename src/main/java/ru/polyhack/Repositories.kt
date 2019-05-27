@@ -3,9 +3,13 @@ package ru.polyhack
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
+import java.util.*
 
 @Repository
-interface UserRep : JpaRepository<User, Int>
+interface UserRep : JpaRepository<User, String> {
+
+    fun findByUsername(name: String): Optional<User>
+}
 
 @Repository
 interface ProjectRep : JpaRepository<Project, Int> {

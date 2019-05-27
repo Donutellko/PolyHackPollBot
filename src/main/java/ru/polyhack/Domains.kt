@@ -8,14 +8,14 @@ import org.telegram.telegrambots.meta.api.objects.User as TgUser
 
 @Entity
 class User(
-        @Id var id: Int? = null,
-        var username: String? = null,
+        var chatId: Int? = null,
+        @Id var username: String? = null,
         var firstname: String? = null,
         var lastname: String? = null,
-        @OneToMany(fetch = FetchType.EAGER) var votes: MutableSet<Project> = mutableSetOf()
+        @ManyToMany(fetch = FetchType.EAGER) var votes: MutableSet<Project> = mutableSetOf()
 ) {
     constructor(tgUser: TgUser) : this(
-            id = tgUser.id,
+            chatId = tgUser.id,
             username = tgUser.userName,
             firstname = tgUser.firstName,
             lastname = tgUser.lastName
@@ -27,7 +27,8 @@ class User(
 class Project(
         @Id var id: Int? = null,
         var name: String? = null,
-        var team: String? = null
+        var team: String? = null,
+        var members: String? = null // участники
 )
 
 

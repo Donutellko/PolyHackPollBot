@@ -11,10 +11,17 @@ class UserService(
         private val userRep: UserRep
 ) {
 
-    fun getOrCreateUser(tgUser: TgUser): User {
-        val u = userRep.findById(tgUser.id)
+    fun getExistingUser(tgUser: TgUser): User {
+        var u = userRep.findById(tgUser.userName)
         if (u.isPresent) return u.get()
 
+        u = userRep.findByUsername(tgUser.userName ?: "")
+        if (u.isPresent) return u.get()
+
+        throw Exception("Вы не зарегистрированы для участия в голосовании.")
+    }
+
+    fun addUser(tgUser: TgUser): User {
         return userRep.save(User(tgUser))
     }
 
@@ -22,6 +29,8 @@ class UserService(
         if (user.votes.size >= votesLimit) throw Exception("Вы уже проголосовали за $votesLimit проектов.")
 
         if (user.votes.any { p -> p.id == project.id }) throw Exception("Вы уже голосовали за этот проект.")
+
+        if (project.members?.contains(user.username!!.toLowerCase()) == true) throw Exception("За свой проект голосовать нельзя!")
 
         user.votes.add(project)
         userRep.save(user)
@@ -37,7 +46,6 @@ class UserService(
             user.votes.stream()
                     .map { p -> "${p.id}:\t${p.name} ${if (p.team.isNullOrBlank()) "" else "(${p.team})"}" }
                     .collect(Collectors.joining("\n"))
-
 
 }
 
@@ -77,6 +85,7 @@ class ProjectService(
                     .map { s -> "${s[1]} голос${ending((s[1] as Long).toInt())}: ${(s[0] as Project).name}" }
                     .collect(Collectors.joining("\n"))
 
+
     private fun ending(n: Int) = when {
         n % 100 in 15..19 -> "ов"
         n % 10 == 1 -> ""
@@ -95,7 +104,10 @@ class ProjectService(
 
         for (i in 1..list.size) {
             val tmp = list[i - 1].split(" - ")
-            projectRep.save(Project(id = i, name = tmp[0], team = tmp[1]))
+
+            tmp[2].split(" ").forEach { u -> userRep.save(User(username = u)) }
+
+            projectRep.save(Project(id = i, name = tmp[0], team = tmp[1], members = tmp[2].toLowerCase()))
         }
     }
 }

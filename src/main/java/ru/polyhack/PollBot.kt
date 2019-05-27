@@ -5,10 +5,8 @@ import org.springframework.stereotype.Component
 import org.telegram.telegrambots.bots.DefaultBotOptions
 import org.telegram.telegrambots.bots.TelegramLongPollingBot
 import org.telegram.telegrambots.meta.ApiContext
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
-import org.telegram.telegrambots.meta.api.methods.send.SendSticker
+import org.telegram.telegrambots.meta.api.methods.send.*
 import org.telegram.telegrambots.meta.api.objects.Update
-import org.telegram.telegrambots.meta.api.objects.stickers.Sticker
 import java.lang.NumberFormatException
 
 @Component
@@ -59,7 +57,41 @@ class PollBot(
             return
         }
 
-        val user = userService.getOrCreateUser(update.message.from)
+        if (update.message.text.contains("/pass НИПУТЮ")) {
+            userService.addUser(update.message.from)
+
+            logService.addLog(tag = update.message.from.userName ?: "unknown",
+                    text = update.message.text,
+                    response = "Добро пожаловать")
+
+            execute(SendPhoto()
+                    .setChatId(update.message.chatId)
+                    .setPhoto("https://i.kym-cdn.com/news_feeds/icons/mobile/000/030/918/0c2.jpg")
+            )
+
+            return
+        }
+
+        val user = try {
+            userService.getExistingUser(update.message.from)
+        } catch (e: Exception) {
+            logService.addLog(tag = update.message.from.userName ?: "unknown",
+                    text = update.message.text,
+                    response = e.message ?: "Произошла ошибка при поиске пользователя в базе.")
+
+            execute(SendMessage()
+                    .setChatId(update.message.chatId)
+                    .setText(e.message ?: "Произошла ошибка при поиске пользователя в базе.")
+            )
+
+            execute(SendSticker().apply {
+                setChatId(update.message.chatId)
+                setSticker(stickers[Stickers.ANGRY])
+            })
+
+            return
+        }
+
         val requestText = update.message.text ?: ""
 
         var responseSticker: Stickers? = null
@@ -102,9 +134,9 @@ class PollBot(
 
             } catch (e: NumberFormatException) {
 
-                "Нужно указать номер проекта, например: /vote 27"
+                "Нужно указать номер проекта, например: /vote 42"
 
-            }catch (e: Exception) {
+            } catch (e: Exception) {
 
                 responseSticker = Stickers.ANGRY
                 e.printStackTrace()
@@ -153,7 +185,7 @@ class PollBot(
 
         if (responseSticker != null) {
             execute(SendSticker().apply {
-                setChatId(user.id!!.toLong())
+                setChatId(user.chatId!!.toLong())
                 setSticker(stickers[responseSticker])
             })
         }
